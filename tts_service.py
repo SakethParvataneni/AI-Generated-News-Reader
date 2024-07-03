@@ -1,17 +1,17 @@
-import sqlite3 
+def generate_bulletin(articles):
+    bulletin = ""
+    for article in articles:
+        title = article['title']
+        summary = article.get('summary', 'No summary available')  # Use .get() method to safely retrieve 'summary' or provide default value
+        bulletin += f"{title}: {summary}\n\n"
 
-def generate_tts(summary):
-    return f'TTS for: {summary}'  # Placeholder TTS
+    # Use TTS, TTV, or STV APIs/libraries to generate output
+    print(bulletin)  # For demonstration, replace with actual TTS/TTV/STV generation logic
 
-def create_tts():
-    conn = sqlite3.connect('articles.db')
-    c = conn.cursor()
-    c.execute("SELECT url, metadata FROM articles")
-    articles = c.fetchall()
-
-    for url, summary in articles:
-        tts = generate_tts(summary)
-        print(f'Generated TTS for article: {url}')
-
-if __name__ == '__main__':
-    create_tts()
+if __name__ == "__main__":
+    articles = [
+        {"title": "Example Article 1", "content": "Content of example article 1"},
+        {"title": "Example Article 2", "content": "Content of example article 2"},
+        # Add more articles as needed
+    ]
+    generate_bulletin(articles)

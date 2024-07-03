@@ -1,22 +1,29 @@
-# summarizer.py
-import sqlite3
+import schedule
+import time
+import pika
 
-def generate_summary(content):
-    return content[:200] + '...'  # Placeholder summary
+def enqueue_ndtv_urls():
+    # Replace with logic to enqueue NDTV URLs for scraping
+    urls_to_scrape = [
+        "https://www.ndtv.com/rss/news",
+        "https://www.ndtv.com/rss/movies",
+        # Add more URLs for different categories as needed
+    ]
 
-def summarize_articles():
-    conn = sqlite3.connect('articles.db')
-    c = conn.cursor()
-    c.execute("SELECT url, content FROM articles")
-    articles = c.fetchall()
+    # Connect to RabbitMQ and enqueue URLs
+    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+    channel = connection.channel()
+    channel.queue_declare(queue='detail_urls')
 
-    for url, content in articles:
-        summary = generate_summary(content)
-        c.execute("UPDATE articles SET metadata=? WHERE url=?", (summary, url))
-        print(f'Summarized article: {url}')
+    for url in urls_to_scrape:
+        channel.basic_publish(exchange='', routing_key='detail_urls', body=url)
+        print(f"Enqueued {url} for scraping...")
 
-    conn.commit()
-    conn.close()
+    connection.close()
 
-if __name__ == '__main__':
-    summarize_articles()
+# Schedule the job to run every hour
+schedule.every().hour.do(enqueue_ndtv_urls)
+
+while True:
+    schedule.run_pending()
+   # time.sleep(1)

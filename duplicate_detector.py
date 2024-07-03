@@ -1,31 +1,16 @@
-import sqlite3
-import hashlib
+# duplicate_similarity_engine.py
 
-def get_article_hash(content):
-    return hashlib.md5(content.encode()).hexdigest()
+# Example function to detect duplicates
+def detect_duplicates(articles):
+    # Logic to detect duplicates based on content similarity
+    # Example:
+    unique_articles = []
+    seen_content = set()
 
-def detect_duplicates():
-    conn = sqlite3.connect('articles.db')
-    c = conn.cursor()
-    c.execute("SELECT url, content FROM articles")
-    articles = c.fetchall()
+    for article in articles:
+        content = article['content']
+        if content not in seen_content:
+            seen_content.add(content)
+            unique_articles.append(article)
 
-    hashes = {}
-    duplicates = []
-
-    for url, content in articles:
-        article_hash = get_article_hash(content)
-        if article_hash in hashes:
-            duplicates.append(url)
-        else:
-            hashes[article_hash] = url
-
-    for url in duplicates:
-        c.execute("DELETE FROM articles WHERE url=?", (url,))
-        print(f'Removed duplicate article: {url}')
-
-    conn.commit()
-    conn.close()
-
-if __name__ == '__main__':
-    detect_duplicates()
+    return unique_articles

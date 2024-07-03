@@ -1,52 +1,54 @@
 import requests
 from bs4 import BeautifulSoup
-from transformers import pipeline
-from gtts import gTTS
 import os
-import re 
+import hashlib  # for generating unique identifiers
+import datetime  # for generating timestamps
 
-def get_news():
-    url = "https://www.ndtv.com/"
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, 'html.parser')
-    headlines = soup.find_all('h3')
-    news_list = [headline.text for headline in headlines[:10]]
-    return news_list
-
-def summarize_text(text):
+# Function to scrape and save articles locally
+def scrape_and_save(url, save_directory):
     try:
-        summarizer = pipeline("summarization", model="google/pegasus-xsum")
-        summary = summarizer(text, max_length=50, min_length=10, do_sample=False)  # Adjust max_length as needed
-        if summary and 'summary_text' in summary[0]:
-            summary_text = summary[0]['summary_text'].strip() 
-            if len(summary_text) > 0:
-                return summary_text
-        print("Empty or invalid summary generated.")
-        return None  # Return None if summary is empty or invalid
-    except Exception as e:
-        print(f"Error during summarization: {e}")
-        return None
-
-def text_to_speech(summary, filename):
-    if summary:
-        clean_filename = re.sub(r'\W+', '', filename.split('.')[0]) + '.mp3'
-        tts = gTTS(summary, lang='te')
-        tts.save(clean_filename)
-        print(f"Text saved to {clean_filename}")
-    else:
-        print("Skipping TTS for empty or invalid summary.")
-
-def main():
-    news_list = get_news()
-
-    for news in news_list:
-        print(news)
-        summary = summarize_text(news)
-        if summary:
-            print(summary)
-            text_to_speech(summary, f"{news[:10]}.mp3")
+        response = requests.get(url)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            articles = soup.find_all('h2', class_='newsHdng')
+            for article in articles:
+                title = article.text.strip()
+                link = article.find('a')['href']
+                category = "General"  # Replace with actual category extraction logic
+                article_id = hashlib.md5(link.encode()).hexdigest()
+                
+                # Fetch article content
+                article_response = requests.get(link)
+                if article_response.status_code == 200:
+                    article_soup = BeautifulSoup(article_response.content, 'html.parser')
+                    # Example: extracting article text
+                    article_text = article_soup.find('div', class_='content').text.strip()  # Replace with actual content extraction
+                    
+                    # Example: generating timestamp for filename
+                    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+                    
+                    # Create directory if it doesn't exist
+                    os.makedirs(save_directory, exist_ok=True)
+                    
+                    # Save article as text file
+                    filename = os.path.join(save_directory, f"{timestamp}_{article_id}.txt")
+                    with open(filename, 'w', encoding='utf-8') as file:
+                        file.write(f"Title: {title}\n\n")
+                        file.write(f"Category: {category}\n\n")
+                        file.write(f"URL: {link}\n\n")
+                        file.write(f"Content:\n\n{article_text}")
+                    
+                    print(f"Saved: {title}")
+                else:
+                    print(f"Failed to retrieve article content from {link}. Status code: {article_response.status_code}")
         else:
-            print("Skipping empty or invalid summary...")
+            print(f"Failed to retrieve data from {url}. Status code: {response.status_code}")
+    except Exception as e:
+        print(f"Error scraping {url}: {e}")
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    # Example usage
+    url = 'https://www.ndtv.com/'
+    save_directory = './saved_articles'
+    
+    scrape_and_save(url, save_directory)

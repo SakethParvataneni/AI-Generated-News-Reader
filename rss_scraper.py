@@ -1,32 +1,29 @@
-import feedparser
-import pika
+# rss_scraper.py
 
-def scrape_rss(feed_url):
-    feed = feedparser.parse(feed_url)
-    urls = [entry.link for entry in feed.entries]
+import requests
+from bs4 import BeautifulSoup
 
-    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-    channel = connection.channel()
-    channel.queue_declare(queue='detail_urls')
+# Example function for sitemap/RSS feed scraper
+def scrape_sitemap_rss(url):
+    # Logic to scrape sitemap or RSS feed
+    response = requests.get(url)
+    # Parse the response with BeautifulSoup using 'lxml' parser
+    soup = BeautifulSoup(response.content, 'lxml')
+    links = soup.find_all('link')
+    for link in links:
+        detail_url = link.get('href')
+        if detail_url:
+            # Enqueue detail_url for detail page scraping
+            scrape_detail_page(detail_url)
 
-    for url in urls:
-        channel.basic_publish(exchange='', routing_key='detail_urls', body=url)
-        print(f'Enqueued detail URL: {url}')
-    
-    connection.close()
+def scrape_detail_page(url):
+    # Logic to scrape detail page and extract content
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, 'lxml')  # Using 'lxml' parser here as well
+    # Extract content, metadata, etc.
+    title = soup.find('title').get_text()
+    content = soup.find('div', class_='content').get_text()
+    # Store or process the extracted data as needed
 
-def callback(ch, method, properties, body):
-    feed_url = body.decode()
-    scrape_rss(feed_url)
-
-def consume_rss_queue():
-    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-    channel = connection.channel()
-    channel.queue_declare(queue='urls')
-
-    channel.basic_consume(queue='urls', on_message_callback=callback, auto_ack=True)
-    print('Waiting for messages...')
-    channel.start_consuming()
-
-if __name__ == '__main__':
-    consume_rss_queue()
+if __name__ == "__main__":
+    scrape_sitemap_rss("https://feeds.feedburner.com/ndtvmovies-latest")
