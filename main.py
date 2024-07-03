@@ -18,7 +18,7 @@ def summarize_text(text):
         summarizer = pipeline("summarization", model="google/pegasus-xsum")
         summary = summarizer(text, max_length=50, min_length=10, do_sample=False)  # Adjust max_length as needed
         if summary and 'summary_text' in summary[0]:
-            summary_text = summary[0]['summary_text'].strip()  # Strip any leading/trailing whitespace
+            summary_text = summary[0]['summary_text'].strip() 
             if len(summary_text) > 0:
                 return summary_text
         print("Empty or invalid summary generated.")
@@ -29,7 +29,6 @@ def summarize_text(text):
 
 def text_to_speech(summary, filename):
     if summary:
-        # Remove any non-alphanumeric characters from the news title for the filename
         clean_filename = re.sub(r'\W+', '', filename.split('.')[0]) + '.mp3'
         tts = gTTS(summary, lang='te')
         tts.save(clean_filename)
